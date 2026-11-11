@@ -11,24 +11,42 @@ on:
 
 jobs:
   build-and-test:
-    name: Build and Test Backend
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Build and start services
+        run: docker compose up -d --build
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: ci-test-password
+          MONGO_INITDB_DATABASE: tasks_db
+          NGINX_PORT: 8080
 
-      - name: Run application tests
-        run: npm test
+      - name: Wait for services
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8080/health; then
+              echo "Application is healthy!"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Application failed to become healthy"
+          exit 1
 
-      - name: Build Docker image
-        run: docker build -t deployforge-backend .
+      - name: Run API integration tests
+        run: bash ./tests/api-test.sh http://localhost:8080
+
+      - name: Show logs if tests fail
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop services
+        if: always()
+        run: docker compose down -v
