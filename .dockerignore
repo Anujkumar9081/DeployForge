@@ -1,0 +1,29 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies (built inside Docker container)
+node_modules
+npm-debug.log*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Documentation & Markdown
+README.md
+docs/
+
+# Testing & Dev files
+tests/
+coverage/
+.vscode/
+.idea/
+.DS_Store
+
+# Nginx config (mounted separately in compose)
+nginx/
+compose.yaml
+docker-compose*.yaml
+
